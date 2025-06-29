@@ -1,0 +1,271 @@
+<!-- ATM Reciclador Dashboard – Simulación para Supermercados y Banco -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Cajero Reciclador – Supermercado</title>
+  <style>
+    :root {
+      --primary: #b90e26;
+      --bg: #f5f5f5;
+      --card-bg: #ffffff;
+      --green: #3da35d;
+      --amber: #f7b500;
+      --red: #d64045;
+    }
+    * {
+      box-sizing: border-box;
+      font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: #333;
+    }
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.4rem;
+    }
+    .tabs {
+      display: flex;
+      gap: 1rem;
+    }
+    .tab {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: #fff;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background 0.2s;
+    }
+    .tab.active, .tab:hover {
+      background: #fff;
+      color: var(--primary);
+    }
+    main {
+      padding: 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.2rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 1rem 1.2rem;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      position: relative;
+    }
+    .card h2 {
+      font-size: 1.1rem;
+      margin-top: 0;
+      margin-bottom: 0.6rem;
+      color: var(--primary);
+    }
+    /* Capacity Gauge styles */
+    .gauge {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: conic-gradient(var(--primary) calc(var(--value) * 1%), #e0e0e0 0%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 1.2rem;
+      margin: 0 auto 0.8rem;
+    }
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 0.4rem;
+      text-align: center;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    /* Accreditation status */
+    .status {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 0.4rem;
+    }
+    /* Alerts */
+    .alert {
+      background: var(--red);
+      color: #fff;
+      padding: 0.5rem;
+      border-radius: 6px;
+      margin-bottom: 0.4rem;
+      font-size: 0.9rem;
+    }
+    .alert.warn {
+      background: var(--amber);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Dashboard Cajero Reciclador – Supermercado XYZ</h1>
+    <div class="tabs">
+      <button class="tab active" onclick="switchView('store')">Vista Supermercado</button>
+      <button class="tab" onclick="switchView('bank')">Vista Banco</button>
+    </div>
+  </header>
+
+  <main id="dashboard">
+    <!-- Cards will be injected by JS -->
+  </main>
+
+  <script>
+    // ------------ DATA MODEL (SIMULACIÓN) -------------
+    const dataStore = {
+      capacityPct: 68, // % de capacidad disponible
+      capacityMx: 340000, // $ disponible
+      mix: { 100: 120, 200: 80, 500: 50 },
+      timeToSat: 5, // horas
+      accreditationInstant: true,
+      recycleRate: 72, // % de retiros cubiertos con reciclaje
+      alerts: [
+        { msg: "Capacidad < 70 % – programe depósito", level: "warn" },
+        { msg: "Rechazo de billetes se elevó a 4 %", level: "danger" }
+      ]
+    };
+
+    const dataBank = {
+      totalSavings: 125000, // ahorro en logística (MXN)
+      avgRecycleRate: 65,
+      uptimeGain: 0.07,
+      mape: 4.2,
+      alerts: [
+        { msg: "2 cajeros con riesgo de saturarse en < 4 h", level: "danger" }
+      ]
+    };
+
+    // ----------------- VIEW RENDERERS -----------------
+    function renderStore() {
+      const html = `
+        <div class="card">
+          <h2>Capacidad disponible</h2>
+          <div class="gauge" style="--value:${dataStore.capacityPct}">${dataStore.capacityPct}%</div>
+          <p style="text-align:center">${formatMoney(dataStore.capacityMx)} MXN</p>
+        </div>
+
+        <div class="card">
+          <h2>Mezcla sugerida</h2>
+          <table>
+            <thead><tr><th>Billete</th><th>Restantes</th></tr></thead>
+            <tbody>
+              ${Object.entries(dataStore.mix).map(([den, qty]) => `<tr><td>$${den}</td><td>${qty}</td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h2>Tiempo hasta saturación</h2>
+          <p style="font-size:2rem;text-align:center;font-weight:600">${dataStore.timeToSat} h</p>
+        </div>
+
+        <div class="card">
+          <h2>Acreditación</h2>
+          <p><span class="status" style="background:${dataStore.accreditationInstant ? 'var(--green)' : 'var(--amber)'}"></span>
+          ${dataStore.accreditationInstant ? 'T0 (inmediata)' : 'Pendiente'}</p>
+        </div>
+
+        <div class="card">
+          <h2>% Reciclaje efectivo</h2>
+          <p style="font-size:2rem;text-align:center;font-weight:600">${dataStore.recycleRate}%</p>
+        </div>
+
+        <div class="card">
+          <h2>Alertas</h2>
+          ${dataStore.alerts.map(a => `<div class="alert ${a.level === 'warn' ? 'warn' : ''}">${a.msg}</div>`).join('')}
+        </div>`;
+      document.getElementById('dashboard').innerHTML = html;
+    }
+
+    function renderBank() {
+      const html = `
+        <div class="card">
+          <h2>Ahorro logístico</h2>
+          <p style="font-size:2rem;text-align:center;font-weight:600">${formatMoney(dataBank.totalSavings)}</p>
+        </div>
+        <div class="card">
+          <h2>Avg. % Reciclaje</h2>
+          <p style="font-size:2rem;text-align:center;font-weight:600">${dataBank.avgRecycleRate}%</p>
+        </div>
+        <div class="card">
+          <h2>Ganancia uptime</h2>
+          <p style="font-size:2rem;text-align:center;font-weight:600">+${(dataBank.uptimeGain*100).toFixed(2)}%</p>
+        </div>
+        <div class="card">
+          <h2>MAPE pronóstico</h2>
+          <p style="font-size:2rem;text-align:center;font-weight:600">${dataBank.mape}%</p>
+        </div>
+        <div class="card">
+          <h2>Alertas red</h2>
+          ${dataBank.alerts.map(a => `<div class="alert ${a.level === 'warn' ? 'warn' : ''}">${a.msg}</div>`).join('')}
+        </div>`;
+      document.getElementById('dashboard').innerHTML = html;
+    }
+
+    // ----------------- HELPERS -----------------
+    function formatMoney(num) {
+      return num.toLocaleString('es-MX', { minimumFractionDigits: 0 });
+    }
+
+    // ----------------- INTERACTIVITY -----------------
+    function switchView(view) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      if (view === 'store') {
+        document.querySelectorAll('.tab')[0].classList.add('active');
+        renderStore();
+      } else {
+        document.querySelectorAll('.tab')[1].classList.add('active');
+        renderBank();
+      }
+    }
+
+    // ----------- SIMULACIÓN DINÁMICA -------------
+    function randomize() {
+      // Simple random walk to simulate changes
+      dataStore.capacityPct = clamp(dataStore.capacityPct + randRange(-3, 3), 10, 100);
+      dataStore.capacityMx = Math.round(dataStore.capacityPct / 100 * 500000);
+      dataStore.timeToSat = clamp(dataStore.timeToSat + randRange(-1, 1), 1, 10);
+      dataStore.recycleRate = clamp(dataStore.recycleRate + randRange(-2, 2), 40, 90);
+      dataStore.accreditationInstant = Math.random() > 0.1;
+
+      // Switch one mix row randomly
+      const dens = Object.keys(dataStore.mix);
+      const d = dens[Math.floor(Math.random()*dens.length)];
+      dataStore.mix[d] = clamp(dataStore.mix[d] + randRange(-10, 10), 0, 200);
+
+      // Render current active view
+      const active = document.querySelector('.tab.active').textContent.includes('Supermercado') ? 'store' : 'bank';
+      active==='store' ? renderStore() : renderBank();
+    }
+
+    function clamp(val, min, max) { return Math.min(Math.max(val, min), max) }
+    function randRange(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+    // Init
+    renderStore();
+    setInterval(randomize, 5000);
+  </script>
+</body>
+</html>
